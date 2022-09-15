@@ -4,4 +4,4 @@
   tasks:
     - name: "Include elastic"
       include_role:
-        name: "elastic"
+        name: "elastic-role"
