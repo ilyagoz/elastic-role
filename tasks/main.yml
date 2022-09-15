@@ -1,0 +1,45 @@
+---
+# Yes, seriously, ubuntu does not install sudo by default.
+- name: Installing required tools.
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - tar
+    - sudo
+- name: Upload tar.gz Elasticsearch from local folder
+  ansible.builtin.copy:
+    src: "{{ elastic_archive }}"
+    dest: "/tmp/elasticsearch-{{ elastic_version }}-linux-x86_64.tar.gz"
+    mode: 0644
+    force: true
+  register: get_elastic
+  until: get_elastic is succeeded
+  retries: 3
+  delay: 20
+  tags: elastic
+
+- name: Create directrory for Elasticsearch
+  ansible.builtin.file:
+    state: directory
+    path: "{{ elastic_home }}"
+    mode: 0755
+  tags: elastic
+- name: Extract Elasticsearch in the installation directory
+  become: true
+  ansible.builtin.unarchive:
+    remote_src: true
+    src: "/tmp/elasticsearch-{{ elastic_version }}-linux-x86_64.tar.gz"
+    dest: "{{ elastic_home }}"
+    mode: 0755
+    extra_opts: [--strip-components=1]
+    creates: "{{ elastic_home }}/bin/elasticsearch"
+  tags:
+    - elastic
+- name: Set environment Elastic
+  become: true
+  ansible.builtin.template:
+    src: templates/elk.sh.j2
+    dest: /etc/profile.d/elk.sh
+    mode: 0644
+  tags: elastic
